@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClatScope Web — OSINT Tool</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a22;
+      --surface2: #1e2330;
+      --border: #2a3040;
+      --accent: #00d4ff;
+      --accent2: #7c3aed;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; letter-spacing: .5px; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo span { color: var(--accent); }
+    .header-actions { display: flex; gap: 8px; }
+    .btn { padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer; font-size: .85rem; font-weight: 600; transition: all .2s; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: .85; }
+
+    /* ── LAYOUT ── */
+    .layout { display: flex; height: calc(100vh - 60px); }
+
+    /* ── SIDEBAR ── */
+    .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .sidebar-search { padding: 12px; border-bottom: 1px solid var(--border); }
+    .sidebar-search input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; color: var(--text); font-size: .85rem; outline: none; }
+    .sidebar-search input:focus { border-color: var(--accent); }
+    .category { border-bottom: 1px solid var(--border); }
+    .category-header { padding: 10px 16px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+    .category-header:hover { color: var(--text); }
+    .category-header .cat-icon { font-size: 14px; }
+    .category-header .arrow { margin-left: auto; transition: transform .2s; }
+    .category-header.collapsed .arrow { transform: rotate(-90deg); }
+    .category-items { overflow: hidden; }
+    .category-items.collapsed { display: none; }
+    .tool-item { padding: 9px 16px 9px 32px; font-size: .85rem; cursor: pointer; color: var(--muted); transition: all .15s; display: flex; align-items: center; gap: 8px; border-left: 3px solid transparent; }
+    .tool-item:hover { color: var(--text); background: var(--surface2); }
+    .tool-item.active { color: var(--accent); background: rgba(0,212,255,.07); border-left-color: var(--accent); }
+    .tool-badge { font-size: .65rem; padding: 1px 6px; border-radius: 10px; background: var(--surface2); color: var(--muted); margin-left: auto; }
+    .tool-badge.free { background: rgba(34,197,94,.15); color: var(--green); }
+    .tool-badge.api { background: rgba(124,58,237,.15); color: #a78bfa; }
+
+    /* ── MAIN CONTENT ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .main::-webkit-scrollbar { width: 6px; }
+    .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── TOOL PANEL ── */
+    .tool-panel { display: none; flex-direction: column; flex: 1; }
+    .tool-panel.active { display: flex; }
+    .tool-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+    .tool-title { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .tool-title .tool-icon { font-size: 22px; }
+    .tool-desc { color: var(--muted); font-size: .875rem; margin-top: 4px; }
+    .tool-body { padding: 20px 24px; flex: 1; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 14px; color: var(--text);
+      font-size: .9rem; outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 100px; font-family: monospace; font-size: .85rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .run-btn { background: linear-gradient(135deg, var(--accent), #0099bb); color: #000; border: none; border-radius: var(--radius); padding: 11px 28px; font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 8px; }
+    .run-btn:hover { opacity: .85; transform: translateY(-1px); }
+    .run-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .run-btn .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.3); border-top-color: #000; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+    .run-btn.loading .spinner { display: block; }
+    .run-btn.loading .btn-text { opacity: .7; }
+
+    /* ── RESULTS ── */
+    .result-box { margin-top: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .result-header { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: .8rem; font-weight: 600; color: var(--muted); }
+    .result-header .status { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.success { background: var(--green); }
+    .status-dot.error { background: var(--red); }
+    .status-dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+    .result-content { padding: 16px; font-size: .85rem; line-height: 1.6; white-space: pre-wrap; font-family: 'Consolas', monospace; max-height: 500px; overflow-y: auto; }
+    .result-content::-webkit-scrollbar { width: 4px; }
+    .result-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .result-content.markdown { font-family: 'Segoe UI', system-ui, sans-serif; white-space: normal; }
+    .result-content .key { color: var(--accent); }
+    .result-content .val { color: var(--text); }
+    .result-content .found { color: var(--green); }
+    .result-content .notfound { color: var(--muted); }
+    .result-content .error-text { color: var(--red); }
+    .copy-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 5px; padding: 3px 10px; font-size: .75rem; cursor: pointer; }
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    /* ── CARDS ── */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+    .card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .card-label { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+    .card-value { font-size: .95rem; font-weight: 600; word-break: break-all; }
+    .card-value.green { color: var(--green); }
+    .card-value.red { color: var(--red); }
+    .card-value.yellow { color: var(--yellow); }
+    .card-value.blue { color: var(--accent); }
+
+    /* ── BREACH CARDS ── */
+    .breach-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .breach-name { font-weight: 700; color: var(--red); font-size: 1rem; }
+    .breach-meta { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+    .breach-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .breach-tag { font-size: .72rem; padding: 2px 8px; border-radius: 10px; background: rgba(239,68,68,.15); color: var(--red); }
+
+    /* ── FOUND SITES ── */
+    .found-list { display: flex; flex-direction: column; gap: 6px; }
+    .found-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.2); border-radius: 7px; font-size: .85rem; }
+    .found-item a { color: var(--accent); text-decoration: none; word-break: break-all; }
+    .found-item a:hover { text-decoration: underline; }
+    .found-icon { color: var(--green); }
+
+    /* ── CRITERIA ── */
+    .criteria-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+    .criteria-item { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+    .criteria-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+    .criteria-icon.met { background: rgba(34,197,94,.2); color: var(--green); }
+    .criteria-icon.unmet { background: rgba(239,68,68,.2); color: var(--red); }
+
+    /* ── DASHBOARD ── */
+    .dashboard { padding: 24px; }
+    .dashboard-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .dashboard-sub { color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .stat-num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+    .quick-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .quick-tool { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all .2s; text-align: center; }
+    .quick-tool:hover { border-color: var(--accent); background: rgba(0,212,255,.05); transform: translateY(-2px); }
+    .quick-tool-icon { font-size: 28px; margin-bottom: 8px; }
+    .quick-tool-name { font-size: .8rem; font-weight: 600; color: var(--text); }
+    .quick-tool-desc { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── SETTINGS ── */
+    .settings-panel { padding: 24px; }
+    .settings-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+    .settings-desc { color: var(--muted); font-size: .875rem; margin-bottom: 24px; }
+    .api-group { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .api-group-title { font-weight: 600; font-size: .9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .api-group-title .api-badge { font-size: .7rem; padding: 2px 8px; border-radius: 10px; background: rgba(124,58,237,.2); color: #a78bfa; }
+
+    /* ── LOG ── */
+    .log-panel { padding: 24px; display: flex; flex-direction: column; flex: 1; }
+    .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .log-content { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; font-family: 'Consolas', monospace; font-size: .8rem; white-space: pre-wrap; overflow-y: auto; max-height: calc(100vh - 200px); color: #94a3b8; line-height: 1.7; }
+
+    /* ── TOAST ── */
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-size: .85rem; display: flex; align-items: center; gap: 10px; animation: slideIn .3s ease; min-width: 260px; }
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: var(--red); }
+    .toast.info { border-color: var(--accent); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn .3s ease; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--surface2); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
+    .tab { flex: 1; padding: 8px; text-align: center; border-radius: 7px; cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--muted); transition: all .2s; }
+    .tab.active { background: var(--surface); color: var(--text); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .sidebar { width: 220px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔭</div>
+    <div>Clat<span>Scope</span> <span style="color:var(--muted);font-size:.8rem;font-weight:400">Web</span></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="showPanel('log')">📋 Log</button>
+    <button class="btn btn-ghost" onclick="showPanel('settings')">⚙️ Settings</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-search">
+      <input type="text" id="toolSearch" placeholder="🔍 Search tools..." oninput="filterTools(this.value)" />
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="category">
+      <div class="category-header" onclick="showPanel('dashboard')">
+        <span class="cat-icon">🏠</span> Dashboard
+      </div>
+    </div>
+
+    <!-- NETWORK & IP -->
+    <div class="category" id="cat-network">
+      <div class="category-header" onclick="toggleCat('network')">
+        <span class="cat-icon">🌐</span> Network & IP
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-network">
+        <div class="tool-item" onclick="showTool('ip')" data-tool="ip">🔍 IP Address Search <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('reverse-dns')" data-tool="reverse-dns">↩ Reverse DNS <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('dns')" data-tool="dns">📡 DNS Records <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('ssl')" data-tool="ssl">🔒 SSL Certificate <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('dnsbl')" data-tool="dnsbl">🚫 DNSBL Blacklist <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('port-scan')" data-tool="port-scan">🔌 Port Scanner <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('ip-complete')" data-tool="ip-complete">📊 Complete IP Details <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('ip-detailed')" data-tool="ip-detailed">🗺 Detailed IP (IPStack) <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- DOMAIN & WEB -->
+    <div class="category" id="cat-domain">
+      <div class="category-header" onclick="toggleCat('domain')">
+        <span class="cat-icon">🌍</span> Domain & Web
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-domain">
+        <div class="tool-item" onclick="showTool('whois')" data-tool="whois">📋 WHOIS Lookup <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('subdomain')" data-tool="subdomain">🔗 Subdomain Finder <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('crawler')" data-tool="crawler">🕷 Web Crawler <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('metadata')" data-tool="metadata">🏷 Web Metadata <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('wayback')" data-tool="wayback">📸 Wayback Machine <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('virustotal')" data-tool="virustotal">🦠 VirusTotal <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('info-scrape')" data-tool="info-scrape">📤 Info Scraper <span class="tool-badge free">Free</span></div>
+      </div>
+    </div>
+
+    <!-- EMAIL -->
+    <div class="category" id="cat-email">
+      <div class="category-header" onclick="toggleCat('email')">
+        <span class="cat-icon">📧</span> Email
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-email">
+        <div class="tool-item" onclick="showTool('email-mx')" data-tool="email-mx">📬 Email MX Check <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('email-header')" data-tool="email-header">📨 Email Header <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('breach')" data-tool="breach">💥 Breach Check (HIBP) <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('email-intel')" data-tool="email-intel">🧠 Email Intelligence <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('email-validate')" data-tool="email-validate">✅ Email Validation <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('castrick')" data-tool="castrick">🔎 Castrick Search <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('instagram')" data-tool="instagram">📸 Instagram Check <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('twitter')" data-tool="twitter">🐦 X/Twitter Check <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('predicta')" data-tool="predicta">🔮 Predicta Search <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- PHONE -->
+    <div class="category" id="cat-phone">
+      <div class="category-header" onclick="toggleCat('phone')">
+        <span class="cat-icon">📱</span> Phone
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-phone">
+        <div class="tool-item" onclick="showTool('phone')" data-tool="phone">📞 Phone Info <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('reverse-phone')" data-tool="reverse-phone">↩ Reverse Phone <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('phone-leak')" data-tool="phone-leak">💧 Phone Leak Search <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('virtual-phone')" data-tool="virtual-phone">📵 Virtual Phone Detector <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('veriphone')" data-tool="veriphone">✔ Veriphone Validate <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('numverify')" data-tool="numverify">🔢 NumVerify <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('truecaller')" data-tool="truecaller">📟 Truecaller <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- PEOPLE -->
+    <div class="category" id="cat-people">
+      <div class="category-header" onclick="toggleCat('people')">
+        <span class="cat-icon">👤</span> People
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-people">
+        <div class="tool-item" onclick="showTool('person')" data-tool="person">🔍 Person Search <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('contact-info')" data-tool="contact-info">📇 Contact Info <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('relationship')" data-tool="relationship">🔗 Relationship Map <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('skip-trace')" data-tool="skip-trace">🕵 Skip Trace <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('identity')" data-tool="identity">🪪 Identity Generator <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- USERNAME -->
+    <div class="category" id="cat-username">
+      <div class="category-header" onclick="toggleCat('username')">
+        <span class="cat-icon">🎭</span> Username
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-username">
+        <div class="tool-item" onclick="showTool('deep-account')" data-tool="deep-account">🌐 Deep Account Search <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('username')" data-tool="username">🔍 Username Check <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('sherlock')" data-tool="sherlock">🕵 Sherlock Search <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('sherlockeye')" data-tool="sherlockeye">👁 SherlockEye <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('reddit')" data-tool="reddit">🤖 Reddit User <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('tiktok')" data-tool="tiktok">🎵 TikTok User <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('botometer')" data-tool="botometer">🤖 Botometer <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- BUSINESS -->
+    <div class="category" id="cat-business">
+      <div class="category-header" onclick="toggleCat('business')">
+        <span class="cat-icon">🏢</span> Business
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-business">
+        <div class="tool-item" onclick="showTool('business')" data-tool="business">🏢 Business Search <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('business-rep')" data-tool="business-rep">⭐ Business Reputation <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('supply-vendor')" data-tool="supply-vendor">📦 Supply/Vendor Risk <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('conflict')" data-tool="conflict">⚖ Conflict of Interest <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('hunter')" data-tool="hunter">🎯 Hunter.io <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- INTEL & ANALYSIS -->
+    <div class="category" id="cat-intel">
+      <div class="category-header" onclick="toggleCat('intel')">
+        <span class="cat-icon">🧠</span> Intel & Analysis
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-intel">
+        <div class="tool-item" onclick="showTool('fact-check')" data-tool="fact-check">✅ Fact Check <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('malice')" data-tool="malice">☠ Malice Detector <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('spam-check')" data-tool="spam-check">📩 Spam Check <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('travel')" data-tool="travel">✈ Travel Risk <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('hudson-rock')" data-tool="hudson-rock">🪨 Hudson Rock <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('osint')" data-tool="osint">🌐 General OSINT <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('autoscan')" data-tool="autoscan">🤖 AutoScan <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="category" id="cat-transport">
+      <div class="category-header" onclick="toggleCat('transport')">
+        <span class="cat-icon">🚢</span> Transport
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-transport">
+        <div class="tool-item" onclick="showTool('ship')" data-tool="ship">🚢 Ship Tracker <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('aircraft')" data-tool="aircraft">✈ Aircraft Tracker <span class="tool-badge free">Free</span></div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="category" id="cat-security">
+      <div class="category-header" onclick="toggleCat('security')">
+        <span class="cat-icon">🔐</span> Security
+        <span class="arrow">▾</span>
+      </div>
+      <div class="category-items" id="items-security">
+        <div class="tool-item" onclick="showTool('password')" data-tool="password">🔑 Password Analyzer <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('aes')" data-tool="aes">🔐 AES Encrypt/Decrypt <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('mac')" data-tool="mac">🖥 MAC Address Lookup <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('file-metadata')" data-tool="file-metadata">📁 File Metadata <span class="tool-badge free">Free</span></div>
+        <div class="tool-item" onclick="showTool('reverse-image')" data-tool="reverse-image">🖼 Reverse Image Search <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('face-similarity')" data-tool="face-similarity">👥 Face Similarity <span class="tool-badge api">API</span></div>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div id="panel-dashboard" class="tool-panel active">
+      <div class="dashboard">
+        <div class="dashboard-title">🔭 ClatScope Web</div>
+        <div class="dashboard-sub">Open Source Intelligence (OSINT) Tool — Personal Edition</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-num">75+</div><div class="stat-label">Total Tools</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-free">30</div><div class="stat-label">Free Tools</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-api">45</div><div class="stat-label">API Tools</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-log">0</div><div class="stat-label">Searches Logged</div></div>
+        </div>
+        <div style="margin-bottom:16px;font-weight:600;color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:1px;">Quick Access</div>
+        <div class="quick-tools">
+          <div class="quick-tool" onclick="showTool('ip')"><div class="quick-tool-icon">🔍</div><div class="quick-tool-name">IP Search</div><div class="quick-tool-desc">Geolocate any IP</div></div>
+          <div class="quick-tool" onclick="showTool('breach')"><div class="quick-tool-icon">💥</div><div class="quick-tool-name">Breach Check</div><div class="quick-tool-desc">HIBP email check</div></div>
+          <div class="quick-tool" onclick="showTool('sherlock')"><div class="quick-tool-icon">🕵</div><div class="quick-tool-name">Sherlock</div><div class="quick-tool-desc">Username search</div></div>
+          <div class="quick-tool" onclick="showTool('whois')"><div class="quick-tool-icon">📋</div><div class="quick-tool-name">WHOIS</div><div class="quick-tool-desc">Domain info</div></div>
+          <div class="quick-tool" onclick="showTool('phone')"><div class="quick-tool-icon">📞</div><div class="quick-tool-name">Phone Info</div><div class="quick-tool-desc">Number details</div></div>
+          <div class="quick-tool" onclick="showTool('port-scan')"><div class="quick-tool-icon">🔌</div><div class="quick-tool-name">Port Scan</div><div class="quick-tool-desc">Open ports</div></div>
+          <div class="quick-tool" onclick="showTool('password')"><div class="quick-tool-icon">🔑</div><div class="quick-tool-name">Password</div><div class="quick-tool-desc">Strength check</div></div>
+          <div class="quick-tool" onclick="showTool('subdomain')"><div class="quick-tool-icon">🔗</div><div class="quick-tool-name">Subdomains</div><div class="quick-tool-desc">Find subdomains</div></div>
+          <div class="quick-tool" onclick="showTool('autoscan')"><div class="quick-tool-icon">🤖</div><div class="quick-tool-name">AutoScan</div><div class="quick-tool-desc">Full target scan</div></div>
+          <div class="quick-tool" onclick="showPanel('settings')"><div class="quick-tool-icon">⚙️</div><div class="quick-tool-name">Settings</div><div class="quick-tool-desc">Configure API keys</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TOOL PANELS ── -->
+
+    <!-- IP ADDRESS -->
+    <div id="panel-ip" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔍</span> IP Address Search</div><div class="tool-desc">Geolocate an IP address and retrieve ISP, timezone, and coordinates.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>IP Address</label><input type="text" id="ip-input" placeholder="e.g. 8.8.8.8" /></div>
+        <button class="run-btn" onclick="runTool('ip')"><div class="spinner"></div><span class="btn-text">🔍 Search</span></button>
+        <div id="result-ip"></div>
+      </div>
+    </div>
+
+    <!-- DEEP ACCOUNT -->
+    <div id="panel-deep-account" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🌐</span> Deep Account Search</div><div class="tool-desc">Check a username across 50+ social platforms and websites.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Username</label><input type="text" id="deep-account-username" placeholder="e.g. johndoe" /></div>
+        <button class="run-btn" onclick="runTool('deep-account')"><div class="spinner"></div><span class="btn-text">🌐 Search</span></button>
+        <div id="result-deep-account"></div>
+      </div>
+    </div>
+
+    <!-- PHONE -->
+    <div id="panel-phone" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📞</span> Phone Info</div><div class="tool-desc">Get country, region, carrier, and validity of a phone number.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="phone-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('phone')"><div class="spinner"></div><span class="btn-text">📞 Search</span></button>
+        <div id="result-phone"></div>
+      </div>
+    </div>
+
+    <!-- DNS -->
+    <div id="panel-dns" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📡</span> DNS Records</div><div class="tool-desc">Retrieve A, CNAME, MX, and NS records for a domain.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="dns-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('dns')"><div class="spinner"></div><span class="btn-text">📡 Lookup</span></button>
+        <div id="result-dns"></div>
+      </div>
+    </div>
+
+    <!-- EMAIL MX -->
+    <div id="panel-email-mx" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📬</span> Email MX Check</div><div class="tool-desc">Validate an email address by checking its domain MX records.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="email-mx-input" placeholder="e.g. user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('email-mx')"><div class="spinner"></div><span class="btn-text">📬 Check</span></button>
+        <div id="result-email-mx"></div>
+      </div>
+    </div>
+
+    <!-- PERSON SEARCH -->
+    <div id="panel-person" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔍</span> Person Search</div><div class="tool-desc">Build a sourced profile of a person using AI-powered research (Perplexity).</div></div>
+      <div class="tool-body">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="person-first" placeholder="John" /></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="person-last" placeholder="Doe" /></div>
+        </div>
+        <div class="form-group"><label>City / Location (optional)</label><input type="text" id="person-city" placeholder="New York" /></div>
+        <button class="run-btn" onclick="runTool('person')"><div class="spinner"></div><span class="btn-text">🔍 Search</span></button>
+        <div id="result-person"></div>
+      </div>
+    </div>
+
+    <!-- REVERSE DNS -->
+    <div id="panel-reverse-dns" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">↩</span> Reverse DNS</div><div class="tool-desc">Retrieve the PTR record for an IP address.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>IP Address</label><input type="text" id="reverse-dns-ip" placeholder="e.g. 8.8.8.8" /></div>
+        <button class="run-btn" onclick="runTool('reverse-dns')"><div class="spinner"></div><span class="btn-text">↩ Lookup</span></button>
+        <div id="result-reverse-dns"></div>
+      </div>
+    </div>
+
+    <!-- EMAIL HEADER -->
+    <div id="panel-email-header" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📨</span> Email Header Analyzer</div><div class="tool-desc">Parse raw email headers to extract IPs, SPF, DKIM, and DMARC results.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Raw Email Headers</label><textarea id="email-header-input" placeholder="Paste raw email headers here..."></textarea></div>
+        <button class="run-btn" onclick="runTool('email-header')"><div class="spinner"></div><span class="btn-text">📨 Analyze</span></button>
+        <div id="result-email-header"></div>
+      </div>
+    </div>
+
+    <!-- BREACH CHECK -->
+    <div id="panel-breach" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">💥</span> Breach Check (HIBP)</div><div class="tool-desc">Check if an email has been exposed in known data breaches via Have I Been Pwned.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="breach-email" placeholder="e.g. user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('breach')"><div class="spinner"></div><span class="btn-text">💥 Check</span></button>
+        <div id="result-breach"></div>
+      </div>
+    </div>
+
+    <!-- WHOIS -->
+    <div id="panel-whois" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📋</span> WHOIS Lookup</div><div class="tool-desc">Retrieve registration details for a domain name.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="whois-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('whois')"><div class="spinner"></div><span class="btn-text">📋 Lookup</span></button>
+        <div id="result-whois"></div>
+      </div>
+    </div>
+
+    <!-- PASSWORD -->
+    <div id="panel-password" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔑</span> Password Analyzer</div><div class="tool-desc">Analyze password strength and check against common patterns.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Password</label><input type="password" id="password-input" placeholder="Enter password to analyze" /></div>
+        <button class="run-btn" onclick="runTool('password')"><div class="spinner"></div><span class="btn-text">🔑 Analyze</span></button>
+        <div id="result-password"></div>
+      </div>
+    </div>
+
+    <!-- USERNAME -->
+    <div id="panel-username" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔍</span> Username Check (WhatsMyName)</div><div class="tool-desc">Check username availability across hundreds of websites using WhatsMyName data.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Username</label><input type="text" id="username-input" placeholder="e.g. johndoe" /></div>
+        <button class="run-btn" onclick="runTool('username')"><div class="spinner"></div><span class="btn-text">🔍 Check</span></button>
+        <div id="result-username"></div>
+      </div>
+    </div>
+
+    <!-- REVERSE PHONE -->
+    <div id="panel-reverse-phone" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">↩</span> Reverse Phone Lookup</div><div class="tool-desc">Identify the person or business associated with a phone number using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="reverse-phone-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('reverse-phone')"><div class="spinner"></div><span class="btn-text">↩ Lookup</span></button>
+        <div id="result-reverse-phone"></div>
+      </div>
+    </div>
+
+    <!-- SSL -->
+    <div id="panel-ssl" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔒</span> SSL Certificate</div><div class="tool-desc">Retrieve SSL/TLS certificate details for a domain.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="ssl-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('ssl')"><div class="spinner"></div><span class="btn-text">🔒 Check</span></button>
+        <div id="result-ssl"></div>
+      </div>
+    </div>
+
+    <!-- WEB CRAWLER -->
+    <div id="panel-crawler" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🕷</span> Web Crawler</div><div class="tool-desc">Retrieve robots.txt and sitemap.xml from a domain.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="crawler-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('crawler')"><div class="spinner"></div><span class="btn-text">🕷 Crawl</span></button>
+        <div id="result-crawler"></div>
+      </div>
+    </div>
+
+    <!-- DNSBL -->
+    <div id="panel-dnsbl" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🚫</span> DNSBL Blacklist Check</div><div class="tool-desc">Check if an IP is listed on major DNS blacklists (Spamhaus, SpamCop, SORBS).</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>IP Address</label><input type="text" id="dnsbl-ip" placeholder="e.g. 1.2.3.4" /></div>
+        <button class="run-btn" onclick="runTool('dnsbl')"><div class="spinner"></div><span class="btn-text">🚫 Check</span></button>
+        <div id="result-dnsbl"></div>
+      </div>
+    </div>
+
+    <!-- WEB METADATA -->
+    <div id="panel-metadata" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🏷</span> Web Metadata</div><div class="tool-desc">Extract title, description, keywords, and Open Graph data from a URL.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>URL</label><input type="text" id="metadata-url" placeholder="e.g. https://example.com" /></div>
+        <button class="run-btn" onclick="runTool('metadata')"><div class="spinner"></div><span class="btn-text">🏷 Extract</span></button>
+        <div id="result-metadata"></div>
+      </div>
+    </div>
+
+    <!-- TRAVEL RISK -->
+    <div id="panel-travel" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">✈</span> Travel Risk Analysis</div><div class="tool-desc">Get a comprehensive travel risk assessment for any destination using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Location / Country</label><input type="text" id="travel-location" placeholder="e.g. Brazil, São Paulo" /></div>
+        <button class="run-btn" onclick="runTool('travel')"><div class="spinner"></div><span class="btn-text">✈ Analyze</span></button>
+        <div id="result-travel"></div>
+      </div>
+    </div>
+
+    <!-- BOTOMETER -->
+    <div id="panel-botometer" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🤖</span> Botometer</div><div class="tool-desc">Detect if a Twitter/X account is a bot using Botometer Pro.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Twitter/X Username</label><input type="text" id="botometer-username" placeholder="e.g. @elonmusk" /></div>
+        <button class="run-btn" onclick="runTool('botometer')"><div class="spinner"></div><span class="btn-text">🤖 Check</span></button>
+        <div id="result-botometer"></div>
+      </div>
+    </div>
+
+    <!-- BUSINESS -->
+    <div id="panel-business" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🏢</span> Business Search</div><div class="tool-desc">Compile a sourced business intelligence dossier using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Business Name</label><input type="text" id="business-name" placeholder="e.g. Acme Corporation" /></div>
+        <button class="run-btn" onclick="runTool('business')"><div class="spinner"></div><span class="btn-text">🏢 Search</span></button>
+        <div id="result-business"></div>
+      </div>
+    </div>
+
+    <!-- HUDSON ROCK -->
+    <div id="panel-hudson-rock" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🪨</span> Hudson Rock</div><div class="tool-desc">Search the Hudson Rock Cavalier database for compromised credentials.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('hudson-rock', 'email', this)">Email</div>
+          <div class="tab" onclick="setTab('hudson-rock', 'username', this)">Username</div>
+          <div class="tab" onclick="setTab('hudson-rock', 'domain', this)">Domain</div>
+          <div class="tab" onclick="setTab('hudson-rock', 'ip', this)">IP</div>
+        </div>
+        <div id="hudson-rock-tab-email">
+          <div class="form-group"><label>Email</label><input type="text" id="hudson-rock-email" placeholder="user@example.com" /></div>
+        </div>
+        <div id="hudson-rock-tab-username" style="display:none">
+          <div class="form-group"><label>Username</label><input type="text" id="hudson-rock-username" placeholder="johndoe" /></div>
+        </div>
+        <div id="hudson-rock-tab-domain" style="display:none">
+          <div class="form-group"><label>Domain</label><input type="text" id="hudson-rock-domain" placeholder="example.com" /></div>
+        </div>
+        <div id="hudson-rock-tab-ip" style="display:none">
+          <div class="form-group"><label>IP Address</label><input type="text" id="hudson-rock-ip" placeholder="1.2.3.4" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('hudson-rock')"><div class="spinner"></div><span class="btn-text">🪨 Search</span></button>
+        <div id="result-hudson-rock"></div>
+      </div>
+    </div>
+
+    <!-- FACT CHECK -->
+    <div id="panel-fact-check" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">✅</span> Fact Check</div><div class="tool-desc">Verify claims in a text using AI-powered fact-checking with source citations.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Text to Fact-Check</label><textarea id="fact-check-text" placeholder="Paste the text you want to fact-check..."></textarea></div>
+        <button class="run-btn" onclick="runTool('fact-check')"><div class="spinner"></div><span class="btn-text">✅ Check</span></button>
+        <div id="result-fact-check"></div>
+      </div>
+    </div>
+
+    <!-- RELATIONSHIP -->
+    <div id="panel-relationship" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔗</span> Relationship Mapping</div><div class="tool-desc">Map relationships and connections between entities using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Query (e.g. "Relationship between Person A and Company B")</label><textarea id="relationship-query" placeholder="Describe the entities and what you want to know about their relationship..."></textarea></div>
+        <button class="run-btn" onclick="runTool('relationship')"><div class="spinner"></div><span class="btn-text">🔗 Map</span></button>
+        <div id="result-relationship"></div>
+      </div>
+    </div>
+
+    <!-- FILE METADATA -->
+    <div id="panel-file-metadata" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📁</span> File Metadata</div><div class="tool-desc">Extract metadata from images, PDFs, and other files including EXIF data.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Upload File</label><input type="file" id="file-metadata-input" style="padding:8px" /></div>
+        <button class="run-btn" onclick="runTool('file-metadata')"><div class="spinner"></div><span class="btn-text">📁 Extract</span></button>
+        <div id="result-file-metadata"></div>
+      </div>
+    </div>
+
+    <!-- SUBDOMAIN -->
+    <div id="panel-subdomain" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔗</span> Subdomain Finder</div><div class="tool-desc">Discover subdomains using certificate transparency logs (crt.sh).</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="subdomain-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('subdomain')"><div class="spinner"></div><span class="btn-text">🔗 Find</span></button>
+        <div id="result-subdomain"></div>
+      </div>
+    </div>
+
+    <!-- HUNTER -->
+    <div id="panel-hunter" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🎯</span> Hunter.io</div><div class="tool-desc">Find and verify email addresses, company info, and people using Hunter.io.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('hunter', 'domain', this)">Domain</div>
+          <div class="tab" onclick="setTab('hunter', 'email_finder', this)">Email Finder</div>
+          <div class="tab" onclick="setTab('hunter', 'email_verify', this)">Verify Email</div>
+          <div class="tab" onclick="setTab('hunter', 'company', this)">Company</div>
+          <div class="tab" onclick="setTab('hunter', 'person', this)">Person</div>
+        </div>
+        <div id="hunter-tab-domain">
+          <div class="form-group"><label>Domain</label><input type="text" id="hunter-domain" placeholder="example.com" /></div>
+        </div>
+        <div id="hunter-tab-email_finder" style="display:none">
+          <div class="form-row">
+            <div class="form-group"><label>First Name</label><input type="text" id="hunter-ef-first" placeholder="John" /></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="hunter-ef-last" placeholder="Doe" /></div>
+          </div>
+          <div class="form-group"><label>Domain</label><input type="text" id="hunter-ef-domain" placeholder="example.com" /></div>
+        </div>
+        <div id="hunter-tab-email_verify" style="display:none">
+          <div class="form-group"><label>Email</label><input type="text" id="hunter-ev-email" placeholder="user@example.com" /></div>
+        </div>
+        <div id="hunter-tab-company" style="display:none">
+          <div class="form-group"><label>Domain</label><input type="text" id="hunter-co-domain" placeholder="example.com" /></div>
+        </div>
+        <div id="hunter-tab-person" style="display:none">
+          <div class="form-group"><label>Email</label><input type="text" id="hunter-pe-email" placeholder="user@example.com" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('hunter')"><div class="spinner"></div><span class="btn-text">🎯 Search</span></button>
+        <div id="result-hunter"></div>
+      </div>
+    </div>
+
+    <!-- CASTRICK -->
+    <div id="panel-castrick" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔎</span> Castrick Email Search</div><div class="tool-desc">Search for information associated with an email address via Castrick.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email</label><input type="text" id="castrick-email" placeholder="user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('castrick')"><div class="spinner"></div><span class="btn-text">🔎 Search</span></button>
+        <div id="result-castrick"></div>
+      </div>
+    </div>
+
+    <!-- VIRUSTOTAL -->
+    <div id="panel-virustotal" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🦠</span> VirusTotal</div><div class="tool-desc">Scan a domain for malware and security threats using VirusTotal.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain</label><input type="text" id="virustotal-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('virustotal')"><div class="spinner"></div><span class="btn-text">🦠 Scan</span></button>
+        <div id="result-virustotal"></div>
+      </div>
+    </div>
+
+    <!-- MALICE -->
+    <div id="panel-malice" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">☠</span> Malice Detector</div><div class="tool-desc">Analyze text for phishing, scams, or social engineering using AI.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Text to Analyze</label><textarea id="malice-text" placeholder="Paste suspicious text, email content, or message here..."></textarea></div>
+        <button class="run-btn" onclick="runTool('malice')"><div class="spinner"></div><span class="btn-text">☠ Analyze</span></button>
+        <div id="result-malice"></div>
+      </div>
+    </div>
+
+    <!-- SUPPLY/VENDOR -->
+    <div id="panel-supply-vendor" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📦</span> Supply/Vendor Risk</div><div class="tool-desc">Assess risk for a vendor or supplier using AI-powered research.</div></div>
+      <div class="tool-body">
+        <div class="form-row">
+          <div class="form-group"><label>Company Name</label><input type="text" id="supply-company" placeholder="Acme Corp" /></div>
+          <div class="form-group"><label>Start Date</label><input type="date" id="supply-date" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('supply-vendor')"><div class="spinner"></div><span class="btn-text">📦 Assess</span></button>
+        <div id="result-supply-vendor"></div>
+      </div>
+    </div>
+
+    <!-- BUSINESS REP -->
+    <div id="panel-business-rep" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">⭐</span> Business Reputation</div><div class="tool-desc">Comprehensive reputation analysis for a business using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Company Name</label><input type="text" id="business-rep-name" placeholder="e.g. Acme Corporation" /></div>
+        <button class="run-btn" onclick="runTool('business-rep')"><div class="spinner"></div><span class="btn-text">⭐ Analyze</span></button>
+        <div id="result-business-rep"></div>
+      </div>
+    </div>
+
+    <!-- WAYBACK -->
+    <div id="panel-wayback" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📸</span> Wayback Machine</div><div class="tool-desc">Find historical snapshots of a website from the Wayback Machine.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Domain / URL</label><input type="text" id="wayback-domain" placeholder="e.g. example.com" /></div>
+        <button class="run-btn" onclick="runTool('wayback')"><div class="spinner"></div><span class="btn-text">📸 Search</span></button>
+        <div id="result-wayback"></div>
+      </div>
+    </div>
+
+    <!-- PORT SCAN -->
+    <div id="panel-port-scan" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔌</span> Port Scanner</div><div class="tool-desc">Scan common ports on a target host to identify open services.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Target (IP or Domain)</label><input type="text" id="port-scan-target" placeholder="e.g. 192.168.1.1 or example.com" /></div>
+        <button class="run-btn" onclick="runTool('port-scan')"><div class="spinner"></div><span class="btn-text">🔌 Scan</span></button>
+        <div id="result-port-scan"></div>
+      </div>
+    </div>
+
+    <!-- PHONE LEAK -->
+    <div id="panel-phone-leak" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">💧</span> Phone Leak Search</div><div class="tool-desc">Search for leaked data associated with a phone number.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="phone-leak-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('phone-leak')"><div class="spinner"></div><span class="btn-text">💧 Search</span></button>
+        <div id="result-phone-leak"></div>
+      </div>
+    </div>
+
+    <!-- AES -->
+    <div id="panel-aes" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔐</span> AES Encrypt / Decrypt</div><div class="tool-desc">Encrypt or decrypt text using AES via RapidAPI.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('aes', 'encrypt', this)">Encrypt</div>
+          <div class="tab" onclick="setTab('aes', 'decrypt', this)">Decrypt</div>
+        </div>
+        <div id="aes-tab-encrypt">
+          <div class="form-group"><label>Plaintext</label><textarea id="aes-plaintext" placeholder="Text to encrypt..."></textarea></div>
+          <div class="form-group"><label>Encryption Key</label><input type="text" id="aes-enc-key" placeholder="Your encryption key" /></div>
+        </div>
+        <div id="aes-tab-decrypt" style="display:none">
+          <div class="form-group"><label>Ciphertext</label><textarea id="aes-ciphertext" placeholder="Ciphertext to decrypt..."></textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label>Decryption Key</label><input type="text" id="aes-dec-key" placeholder="Your decryption key" /></div>
+            <div class="form-group"><label>IV</label><input type="text" id="aes-iv" placeholder="Initialization vector" /></div>
+          </div>
+        </div>
+        <button class="run-btn" onclick="runTool('aes')"><div class="spinner"></div><span class="btn-text">🔐 Run</span></button>
+        <div id="result-aes"></div>
+      </div>
+    </div>
+
+    <!-- EMAIL INTEL -->
+    <div id="panel-email-intel" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🧠</span> Email Intelligence</div><div class="tool-desc">Get detailed intelligence on an email address including reputation and risk.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="email-intel-input" placeholder="user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('email-intel')"><div class="spinner"></div><span class="btn-text">🧠 Analyze</span></button>
+        <div id="result-email-intel"></div>
+      </div>
+    </div>
+
+    <!-- TIKTOK -->
+    <div id="panel-tiktok" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🎵</span> TikTok User Search</div><div class="tool-desc">Retrieve TikTok user profile information.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>TikTok Username</label><input type="text" id="tiktok-username" placeholder="e.g. username" /></div>
+        <button class="run-btn" onclick="runTool('tiktok')"><div class="spinner"></div><span class="btn-text">🎵 Search</span></button>
+        <div id="result-tiktok"></div>
+      </div>
+    </div>
+
+    <!-- SKIP TRACE -->
+    <div id="panel-skip-trace" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🕵</span> Skip Trace</div><div class="tool-desc">Perform a skip trace search by name or ID.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('skip-trace', 'name', this)">By Name</div>
+          <div class="tab" onclick="setTab('skip-trace', 'id', this)">By ID</div>
+        </div>
+        <div id="skip-trace-tab-name">
+          <div class="form-group"><label>Full Name</label><input type="text" id="skip-trace-name" placeholder="John Doe" /></div>
+        </div>
+        <div id="skip-trace-tab-id" style="display:none">
+          <div class="form-group"><label>ID</label><input type="text" id="skip-trace-id" placeholder="Enter ID" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('skip-trace')"><div class="spinner"></div><span class="btn-text">🕵 Search</span></button>
+        <div id="result-skip-trace"></div>
+      </div>
+    </div>
+
+    <!-- SHIP -->
+    <div id="panel-ship" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🚢</span> Ship Tracker</div><div class="tool-desc">Track ships by MMSI number or find ships in a geographic radius.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('ship', 'mmsi', this)">By MMSI</div>
+          <div class="tab" onclick="setTab('ship', 'radius', this)">By Radius</div>
+        </div>
+        <div id="ship-tab-mmsi">
+          <div class="form-group"><label>MMSI Number</label><input type="text" id="ship-mmsi" placeholder="e.g. 123456789" /></div>
+        </div>
+        <div id="ship-tab-radius" style="display:none">
+          <div class="form-row-3">
+            <div class="form-group"><label>Latitude</label><input type="text" id="ship-lat" placeholder="e.g. 48.8566" /></div>
+            <div class="form-group"><label>Longitude</label><input type="text" id="ship-lon" placeholder="e.g. 2.3522" /></div>
+            <div class="form-group"><label>Radius (km)</label><input type="text" id="ship-radius" placeholder="e.g. 50" /></div>
+          </div>
+        </div>
+        <button class="run-btn" onclick="runTool('ship')"><div class="spinner"></div><span class="btn-text">🚢 Track</span></button>
+        <div id="result-ship"></div>
+      </div>
+    </div>
+
+    <!-- AIRCRAFT -->
+    <div id="panel-aircraft" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">✈</span> Aircraft Tracker</div><div class="tool-desc">Track live aircraft by callsign or find aircraft in a geographic range.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('aircraft', 'callsign', this)">By Callsign</div>
+          <div class="tab" onclick="setTab('aircraft', 'location', this)">By Location</div>
+        </div>
+        <div id="aircraft-tab-callsign">
+          <div class="form-group"><label>Callsign</label><input type="text" id="aircraft-callsign" placeholder="e.g. UAL123" /></div>
+        </div>
+        <div id="aircraft-tab-location" style="display:none">
+          <div class="form-row-3">
+            <div class="form-group"><label>Latitude</label><input type="text" id="aircraft-lat" placeholder="e.g. 48.8566" /></div>
+            <div class="form-group"><label>Longitude</label><input type="text" id="aircraft-lon" placeholder="e.g. 2.3522" /></div>
+            <div class="form-group"><label>Range (km)</label><input type="text" id="aircraft-range" placeholder="e.g. 100" /></div>
+          </div>
+        </div>
+        <button class="run-btn" onclick="runTool('aircraft')"><div class="spinner"></div><span class="btn-text">✈ Track</span></button>
+        <div id="result-aircraft"></div>
+      </div>
+    </div>
+
+    <!-- PREDICTA -->
+    <div id="panel-predicta" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔮</span> Predicta Search</div><div class="tool-desc">Search for information by email or phone using Predicta.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Query</label><input type="text" id="predicta-query" placeholder="email or phone number" /></div>
+        <div class="form-group">
+          <label>Query Type</label>
+          <select id="predicta-type">
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <button class="run-btn" onclick="runTool('predicta')"><div class="spinner"></div><span class="btn-text">🔮 Search</span></button>
+        <div id="result-predicta"></div>
+      </div>
+    </div>
+
+    <!-- IDENTITY -->
+    <div id="panel-identity" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🪪</span> Identity Generator</div><div class="tool-desc">Generate a random fake identity for testing purposes.</div></div>
+      <div class="tool-body">
+        <button class="run-btn" onclick="runTool('identity')"><div class="spinner"></div><span class="btn-text">🪪 Generate</span></button>
+        <div id="result-identity"></div>
+      </div>
+    </div>
+
+    <!-- VIRTUAL PHONE -->
+    <div id="panel-virtual-phone" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📵</span> Virtual Phone Detector</div><div class="tool-desc">Detect if a phone number is a virtual/VoIP number.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="virtual-phone-input" placeholder="e.g. +447497265710" /></div>
+        <button class="run-btn" onclick="runTool('virtual-phone')"><div class="spinner"></div><span class="btn-text">📵 Check</span></button>
+        <div id="result-virtual-phone"></div>
+      </div>
+    </div>
+
+    <!-- MAC -->
+    <div id="panel-mac" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🖥</span> MAC Address Lookup</div><div class="tool-desc">Look up vendor information for a MAC address.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>MAC Address</label><input type="text" id="mac-input" placeholder="e.g. 00-B0-D0-63-C2-26" /></div>
+        <button class="run-btn" onclick="runTool('mac')"><div class="spinner"></div><span class="btn-text">🖥 Lookup</span></button>
+        <div id="result-mac"></div>
+      </div>
+    </div>
+
+    <!-- AUTOSCAN -->
+    <div id="panel-autoscan" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🤖</span> AutoScan</div><div class="tool-desc">Run a comprehensive multi-source scan on a target. Fill in any combination of fields.</div></div>
+      <div class="tool-body">
+        <div class="form-row">
+          <div class="form-group"><label>Full Name</label><input type="text" id="autoscan-name" placeholder="John Doe" /></div>
+          <div class="form-group"><label>City</label><input type="text" id="autoscan-city" placeholder="New York" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Phone</label><input type="text" id="autoscan-phone" placeholder="+1-555-000-0000" /></div>
+          <div class="form-group"><label>IP Address</label><input type="text" id="autoscan-ip" placeholder="1.2.3.4" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Email</label><input type="text" id="autoscan-email" placeholder="user@example.com" /></div>
+          <div class="form-group"><label>Domain</label><input type="text" id="autoscan-domain" placeholder="example.com" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('autoscan')"><div class="spinner"></div><span class="btn-text">🤖 AutoScan</span></button>
+        <div id="result-autoscan"></div>
+      </div>
+    </div>
+
+    <!-- CONFLICT -->
+    <div id="panel-conflict" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">⚖</span> Conflict of Interest</div><div class="tool-desc">Analyze potential conflicts of interest between two entities using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-row">
+          <div class="form-group"><label>Entity 1</label><input type="text" id="conflict-entity1" placeholder="Person or Organization" /></div>
+          <div class="form-group"><label>Entity 2</label><input type="text" id="conflict-entity2" placeholder="Person or Organization" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('conflict')"><div class="spinner"></div><span class="btn-text">⚖ Analyze</span></button>
+        <div id="result-conflict"></div>
+      </div>
+    </div>
+
+    <!-- IP DETAILED -->
+    <div id="panel-ip-detailed" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🗺</span> Detailed IP (IPStack)</div><div class="tool-desc">Get comprehensive geolocation data for an IP using IPStack.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>IP Address</label><input type="text" id="ip-detailed-input" placeholder="e.g. 8.8.8.8" /></div>
+        <button class="run-btn" onclick="runTool('ip-detailed')"><div class="spinner"></div><span class="btn-text">🗺 Lookup</span></button>
+        <div id="result-ip-detailed"></div>
+      </div>
+    </div>
+
+    <!-- VERIPHONE -->
+    <div id="panel-veriphone" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">✔</span> Veriphone Validate</div><div class="tool-desc">Validate a phone number using Veriphone API.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="veriphone-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('veriphone')"><div class="spinner"></div><span class="btn-text">✔ Validate</span></button>
+        <div id="result-veriphone"></div>
+      </div>
+    </div>
+
+    <!-- NUMVERIFY -->
+    <div id="panel-numverify" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🔢</span> NumVerify</div><div class="tool-desc">Validate and get detailed info on a phone number using NumVerify.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="numverify-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('numverify')"><div class="spinner"></div><span class="btn-text">🔢 Validate</span></button>
+        <div id="result-numverify"></div>
+      </div>
+    </div>
+
+    <!-- OSINT -->
+    <div id="panel-osint" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🌐</span> General OSINT Search</div><div class="tool-desc">Perform a general OSINT search using RapidAPI.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Query</label><input type="text" id="osint-query" placeholder="Name, email, phone, or username" /></div>
+        <button class="run-btn" onclick="runTool('osint')"><div class="spinner"></div><span class="btn-text">🌐 Search</span></button>
+        <div id="result-osint"></div>
+      </div>
+    </div>
+
+    <!-- CONTACT INFO -->
+    <div id="panel-contact-info" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📇</span> Contact Info Search</div><div class="tool-desc">Find contact information for a person using AI research.</div></div>
+      <div class="tool-body">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="contact-first" placeholder="John" /></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="contact-last" placeholder="Doe" /></div>
+        </div>
+        <div class="form-group"><label>City (optional)</label><input type="text" id="contact-city" placeholder="New York" /></div>
+        <button class="run-btn" onclick="runTool('contact-info')"><div class="spinner"></div><span class="btn-text">📇 Search</span></button>
+        <div id="result-contact-info"></div>
+      </div>
+    </div>
+
+    <!-- INSTAGRAM -->
+    <div id="panel-instagram" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📸</span> Instagram Check</div><div class="tool-desc">Check if an email is associated with an Instagram account.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="instagram-email" placeholder="user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('instagram')"><div class="spinner"></div><span class="btn-text">📸 Check</span></button>
+        <div id="result-instagram"></div>
+      </div>
+    </div>
+
+    <!-- FACE SIMILARITY -->
+    <div id="panel-face-similarity" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">👥</span> Face Similarity</div><div class="tool-desc">Compare two face images to determine if they are the same person.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Image URL 1</label><input type="text" id="face-url1" placeholder="https://example.com/face1.jpg" /></div>
+        <div class="form-group"><label>Image URL 2</label><input type="text" id="face-url2" placeholder="https://example.com/face2.jpg" /></div>
+        <button class="run-btn" onclick="runTool('face-similarity')"><div class="spinner"></div><span class="btn-text">👥 Compare</span></button>
+        <div id="result-face-similarity"></div>
+      </div>
+    </div>
+
+    <!-- REVERSE IMAGE -->
+    <div id="panel-reverse-image" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🖼</span> Reverse Image Search</div><div class="tool-desc">Find the source of an image using reverse image search.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Image URL</label><input type="text" id="reverse-image-url" placeholder="https://example.com/image.jpg" /></div>
+        <button class="run-btn" onclick="runTool('reverse-image')"><div class="spinner"></div><span class="btn-text">🖼 Search</span></button>
+        <div id="result-reverse-image"></div>
+      </div>
+    </div>
+
+    <!-- TWITTER -->
+    <div id="panel-twitter" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🐦</span> X/Twitter Check</div><div class="tool-desc">Check if an email is associated with a Twitter/X account.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="twitter-email" placeholder="user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('twitter')"><div class="spinner"></div><span class="btn-text">🐦 Check</span></button>
+        <div id="result-twitter"></div>
+      </div>
+    </div>
+
+    <!-- SHERLOCK -->
+    <div id="panel-sherlock" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🕵</span> Sherlock Username Search</div><div class="tool-desc">Search for a username across hundreds of websites using Sherlock's database.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Username</label><input type="text" id="sherlock-username" placeholder="e.g. johndoe" /></div>
+        <button class="run-btn" onclick="runTool('sherlock')"><div class="spinner"></div><span class="btn-text">🕵 Search</span></button>
+        <div id="result-sherlock"></div>
+      </div>
+    </div>
+
+    <!-- IP COMPLETE -->
+    <div id="panel-ip-complete" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📊</span> Complete IP Details</div><div class="tool-desc">Get comprehensive IP details from multiple geolocation providers.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>IP Address (leave blank for your own IP)</label><input type="text" id="ip-complete-input" placeholder="e.g. 8.8.8.8 (optional)" /></div>
+        <button class="run-btn" onclick="runTool('ip-complete')"><div class="spinner"></div><span class="btn-text">📊 Lookup</span></button>
+        <div id="result-ip-complete"></div>
+      </div>
+    </div>
+
+    <!-- SPAM CHECK -->
+    <div id="panel-spam-check" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📩</span> Spam Check</div><div class="tool-desc">Analyze text to determine if it is spam or ham using APILayer.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Text</label><textarea id="spam-check-text" placeholder="Paste text to analyze for spam..."></textarea></div>
+        <button class="run-btn" onclick="runTool('spam-check')"><div class="spinner"></div><span class="btn-text">📩 Check</span></button>
+        <div id="result-spam-check"></div>
+      </div>
+    </div>
+
+    <!-- INFO SCRAPE -->
+    <div id="panel-info-scrape" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📤</span> Info Scraper</div><div class="tool-desc">Extract emails, phone numbers, and social media links from a website.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>URL</label><input type="text" id="info-scrape-url" placeholder="e.g. https://example.com" /></div>
+        <button class="run-btn" onclick="runTool('info-scrape')"><div class="spinner"></div><span class="btn-text">📤 Scrape</span></button>
+        <div id="result-info-scrape"></div>
+      </div>
+    </div>
+
+    <!-- EMAIL VALIDATE -->
+    <div id="panel-email-validate" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">✅</span> Email Validation</div><div class="tool-desc">Validate an email address using Email-Validator.net API.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Email Address</label><input type="text" id="email-validate-input" placeholder="user@example.com" /></div>
+        <button class="run-btn" onclick="runTool('email-validate')"><div class="spinner"></div><span class="btn-text">✅ Validate</span></button>
+        <div id="result-email-validate"></div>
+      </div>
+    </div>
+
+    <!-- SHERLOCKEYE -->
+    <div id="panel-sherlockeye" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">👁</span> SherlockEye</div><div class="tool-desc">Search for a username using SherlockEye API and retrieve results by ID.</div></div>
+      <div class="tool-body">
+        <div class="tabs">
+          <div class="tab active" onclick="setTab('sherlockeye', 'username', this)">Search Username</div>
+          <div class="tab" onclick="setTab('sherlockeye', 'get_result', this)">Get Result by ID</div>
+        </div>
+        <div id="sherlockeye-tab-username">
+          <div class="form-group"><label>Username</label><input type="text" id="sherlockeye-username" placeholder="johndoe" /></div>
+        </div>
+        <div id="sherlockeye-tab-get_result" style="display:none">
+          <div class="form-group"><label>Search ID</label><input type="text" id="sherlockeye-id" placeholder="ID from previous search" /></div>
+        </div>
+        <button class="run-btn" onclick="runTool('sherlockeye')"><div class="spinner"></div><span class="btn-text">👁 Search</span></button>
+        <div id="result-sherlockeye"></div>
+      </div>
+    </div>
+
+    <!-- TRUECALLER -->
+    <div id="panel-truecaller" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">📟</span> Truecaller</div><div class="tool-desc">Look up a phone number using Truecaller.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Phone Number</label><input type="text" id="truecaller-input" placeholder="e.g. +1-555-000-0000" /></div>
+        <button class="run-btn" onclick="runTool('truecaller')"><div class="spinner"></div><span class="btn-text">📟 Lookup</span></button>
+        <div id="result-truecaller"></div>
+      </div>
+    </div>
+
+    <!-- REDDIT -->
+    <div id="panel-reddit" class="tool-panel">
+      <div class="tool-header"><div class="tool-title"><span class="tool-icon">🤖</span> Reddit User Search</div><div class="tool-desc">Retrieve public profile information for a Reddit user.</div></div>
+      <div class="tool-body">
+        <div class="form-group"><label>Reddit Username</label><input type="text" id="reddit-username" placeholder="e.g. username" /></div>
+        <button class="run-btn" onclick="runTool('reddit')"><div class="spinner"></div><span class="btn-text">🤖 Search</span></button>
+        <div id="result-reddit"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div id="panel-settings" class="tool-panel">
+      <div class="settings-panel">
+        <div class="settings-title">⚙️ API Key Settings</div>
+        <div class="settings-desc">Configure your API keys to unlock all ClatScope tools. Keys are stored locally in config.json.</div>
+
+        <div class="api-group">
+          <div class="api-group-title">🔓 Core APIs <span class="api-badge">Required for most tools</span></div>
+          <div class="form-group"><label>Perplexity AI (Person/Business/Travel/Fact-Check/Malice/Relationship/Conflict)</label><input type="password" id="key-PERPLEXITY_API_KEY" placeholder="pplx-..." /></div>
+          <div class="form-group"><label>RapidAPI Key (Botometer/TikTok/AES/Skip Trace/Phone Leak/MAC/OSINT/Instagram/Twitter/Face/Image)</label><input type="password" id="key-RAPIDAPI_KEY" placeholder="Your RapidAPI key..." /></div>
+        </div>
+
+        <div class="api-group">
+          <div class="api-group-title">📧 Email APIs</div>
+          <div class="form-group"><label>Have I Been Pwned (Breach Check)</label><input type="password" id="key-HIBP_API_KEY" placeholder="Your HIBP key..." /></div>
+          <div class="form-group"><label>Hunter.io (Domain/Email/Person Search)</label><input type="password" id="key-HUNTER_API_KEY" placeholder="Your Hunter.io key..." /></div>
+          <div class="form-group"><label>Castrick (Email Search)</label><input type="password" id="key-CASTRICK_API_KEY" placeholder="Your Castrick key..." /></div>
+          <div class="form-group"><label>Email Validator (Email Validation)</label><input type="password" id="key-EMAIL_VALIDATOR_API_KEY" placeholder="Your Email Validator key..." /></div>
+          <div class="form-group"><label>Spam Checker / APILayer (Spam Check)</label><input type="password" id="key-SPAM_API_KEY" placeholder="Your APILayer key..." /></div>
+          <div class="form-group"><label>Predicta (Email/Phone Search)</label><input type="password" id="key-PREDICTA_API_KEY" placeholder="Your Predicta key..." /></div>
+        </div>
+
+        <div class="api-group">
+          <div class="api-group-title">📱 Phone APIs</div>
+          <div class="form-group"><label>Veriphone (Phone Validation)</label><input type="password" id="key-VERIPHONE_API_KEY" placeholder="Your Veriphone key..." /></div>
+          <div class="form-group"><label>NumVerify (Phone Validation)</label><input type="password" id="key-NUMVERIFY_API_KEY" placeholder="Your NumVerify key..." /></div>
+        </div>
+
+        <div class="api-group">
+          <div class="api-group-title">🌐 Network & Security APIs</div>
+          <div class="form-group"><label>VirusTotal (Domain Scan)</label><input type="password" id="key-VIRUSTOTAL_API_KEY" placeholder="Your VirusTotal key..." /></div>
+          <div class="form-group"><label>IPStack (Detailed IP Lookup)</label><input type="password" id="key-IPSTACK_API_KEY" placeholder="Your IPStack key..." /></div>
+          <div class="form-group"><label>SherlockEye (Username Search)</label><input type="password" id="key-SHERLOCKEYE_API_KEY" placeholder="Your SherlockEye key..." /></div>
+        </div>
+
+        <button class="run-btn" onclick="saveSettings()"><span class="btn-text">💾 Save All Settings</span></button>
+      </div>
+    </div>
+
+    <!-- LOG PANEL -->
+    <div id="panel-log" class="tool-panel">
+      <div class="log-panel">
+        <div class="log-header">
+          <div style="font-weight:700;font-size:1rem;">📋 Search Log</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="loadLog()">🔄 Refresh</button>
+            <button class="btn btn-danger" onclick="clearLog()">🗑 Clear Log</button>
+          </div>
+        </div>
+        <div class="log-content" id="log-content">Loading...</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let currentTool = null;
+let currentTab = {};
+const API_BASE = '';
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPanel(panelId) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tool-item').forEach(i => i.classList.remove('active'));
+  const panel = document.getElementById('panel-' + panelId);
+  if (panel) panel.classList.add('active');
+  if (panelId === 'log') loadLog();
+  if (panelId === 'settings') loadSettings();
+  currentTool = panelId;
+}
+
+function showTool(toolId) {
+  showPanel(toolId);
+  document.querySelectorAll('.tool-item').forEach(i => {
+    if (i.dataset.tool === toolId) i.classList.add('active');
+  });
+}
+
+function toggleCat(catId) {
+  const header = document.querySelector(`#cat-${catId} .category-header`);
+  const items = document.getElementById('items-' + catId);
+  header.classList.toggle('collapsed');
+  items.classList.toggle('collapsed');
+}
+
+function setTab(toolId, tabId, el) {
+  currentTab[toolId] = tabId;
+  const panel = document.getElementById('panel-' + toolId);
+  panel.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const tabPrefix = toolId + '-tab-';
+  panel.querySelectorAll('[id^="' + tabPrefix + '"]').forEach(t => t.style.display = 'none');
+  const target = document.getElementById(tabPrefix + tabId);
+  if (target) target.style.display = 'block';
+}
+
+function filterTools(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.tool-item').forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+
+// ── API CALLS ─────────────────────────────────────────────────────────────────
+async function apiCall(endpoint, data, isFormData = false) {
+  const opts = {
+    method: 'POST',
+    headers: isFormData ? {} : {'Content-Type': 'application/json'},
+    body: isFormData ? data : JSON.stringify(data)
+  };
+  const resp = await fetch(API_BASE + '/api/' + endpoint, opts);
+  return resp.json();
+}
+
+// ── TOOL RUNNER ───────────────────────────────────────────────────────────────
+async function runTool(toolId) {
+  const btn = document.querySelector(`#panel-${toolId} .run-btn`);
+  const resultDiv = document.getElementById('result-' + toolId);
+  if (!btn || !resultDiv) return;
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  showLoading(resultDiv);
+
+  try {
+    let result;
+    switch (toolId) {
+      case 'ip': result = await apiCall('ip', {ip: val('ip-input')}); break;
+      case 'deep-account': result = await apiCall('deep-account', {username: val('deep-account-username')}); break;
+      case 'phone': result = await apiCall('phone', {phone: val('phone-input')}); break;
+      case 'dns': result = await apiCall('dns', {domain: val('dns-domain')}); break;
+      case 'email-mx': result = await apiCall('email-mx', {email: val('email-mx-input')}); break;
+      case 'person': result = await apiCall('person', {first_name: val('person-first'), last_name: val('person-last'), city: val('person-city')}); break;
+      case 'reverse-dns': result = await apiCall('reverse-dns', {ip: val('reverse-dns-ip')}); break;
+      case 'email-header': result = await apiCall('email-header', {headers: val('email-header-input')}); break;
+      case 'breach': result = await apiCall('breach', {email: val('breach-email')}); break;
+      case 'whois': result = await apiCall('whois', {domain: val('whois-domain')}); break;
+      case 'password': result = await apiCall('password', {password: val('password-input')}); break;
+      case 'username': result = await apiCall('username', {username: val('username-input')}); break;
+      case 'reverse-phone': result = await apiCall('reverse-phone', {phone: val('reverse-phone-input')}); break;
+      case 'ssl': result = await apiCall('ssl', {domain: val('ssl-domain')}); break;
+      case 'crawler': result = await apiCall('crawler', {domain: val('crawler-domain')}); break;
+      case 'dnsbl': result = await apiCall('dnsbl', {ip: val('dnsbl-ip')}); break;
+      case 'metadata': result = await apiCall('metadata', {url: val('metadata-url')}); break;
+      case 'travel': result = await apiCall('travel', {location: val('travel-location')}); break;
+      case 'botometer': result = await apiCall('botometer', {username: val('botometer-username')}); break;
+      case 'business': result = await apiCall('business', {business_name: val('business-name')}); break;
+      case 'hudson-rock': {
+        const t = currentTab['hudson-rock'] || 'email';
+        const qMap = {email: val('hudson-rock-email'), username: val('hudson-rock-username'), domain: val('hudson-rock-domain'), ip: val('hudson-rock-ip')};
+        result = await apiCall('hudson-rock', {type: t, query: qMap[t]});
+        break;
+      }
+      case 'fact-check': result = await apiCall('fact-check', {text: val('fact-check-text')}); break;
+      case 'relationship': result = await apiCall('relationship', {query: val('relationship-query')}); break;
+      case 'file-metadata': {
+        const fd = new FormData();
+        const fileInput = document.getElementById('file-metadata-input');
+        if (!fileInput.files[0]) { showError(resultDiv, 'Please select a file.'); break; }
+        fd.append('file', fileInput.files[0]);
+        result = await apiCall('file-metadata', fd, true);
+        break;
+      }
+      case 'subdomain': result = await apiCall('subdomain', {domain: val('subdomain-domain')}); break;
+      case 'hunter': {
+        const t = currentTab['hunter'] || 'domain';
+        let d = {type: t};
+        if (t === 'domain') d.domain = val('hunter-domain');
+        else if (t === 'email_finder') { d.domain = val('hunter-ef-domain'); d.first_name = val('hunter-ef-first'); d.last_name = val('hunter-ef-last'); }
+        else if (t === 'email_verify') d.email = val('hunter-ev-email');
+        else if (t === 'company') d.domain = val('hunter-co-domain');
+        else if (t === 'person') d.email = val('hunter-pe-email');
+        result = await apiCall('hunter', d);
+        break;
+      }
+      case 'castrick': result = await apiCall('castrick', {email: val('castrick-email')}); break;
+      case 'virustotal': result = await apiCall('virustotal', {domain: val('virustotal-domain')}); break;
+      case 'malice': result = await apiCall('malice', {text: val('malice-text')}); break;
+      case 'supply-vendor': result = await apiCall('supply-vendor', {company_name: val('supply-company'), start_date: val('supply-date')}); break;
+      case 'business-rep': result = await apiCall('business-rep', {company_name: val('business-rep-name')}); break;
+      case 'wayback': result = await apiCall('wayback', {domain: val('wayback-domain')}); break;
+      case 'port-scan': result = await apiCall('port-scan', {target: val('port-scan-target')}); break;
+      case 'phone-leak': result = await apiCall('phone-leak', {phone: val('phone-leak-input')}); break;
+      case 'aes': {
+        const t = currentTab['aes'] || 'encrypt';
+        if (t === 'encrypt') result = await apiCall('aes', {operation: 'encrypt', plaintext: val('aes-plaintext'), key: val('aes-enc-key')});
+        else result = await apiCall('aes', {operation: 'decrypt', ciphertext: val('aes-ciphertext'), key: val('aes-dec-key'), iv: val('aes-iv')});
+        break;
+      }
+      case 'email-intel': result = await apiCall('email-intel', {email: val('email-intel-input')}); break;
+      case 'tiktok': result = await apiCall('tiktok', {username: val('tiktok-username')}); break;
+      case 'skip-trace': {
+        const t = currentTab['skip-trace'] || 'name';
+        result = await apiCall('skip-trace', {type: t, name: val('skip-trace-name'), id: val('skip-trace-id')});
+        break;
+      }
+      case 'ship': {
+        const t = currentTab['ship'] || 'mmsi';
+        if (t === 'mmsi') result = await apiCall('ship', {type: 'mmsi', mmsi: val('ship-mmsi')});
+        else result = await apiCall('ship', {type: 'radius', latitude: val('ship-lat'), longitude: val('ship-lon'), radius: val('ship-radius')});
+        break;
+      }
+      case 'aircraft': {
+        const t = currentTab['aircraft'] || 'callsign';
+        if (t === 'callsign') result = await apiCall('aircraft', {type: 'callsign', callsign: val('aircraft-callsign')});
+        else result = await apiCall('aircraft', {type: 'location', latitude: val('aircraft-lat'), longitude: val('aircraft-lon'), range: val('aircraft-range')});
+        break;
+      }
+      case 'predicta': result = await apiCall('predicta', {query: val('predicta-query'), query_type: val('predicta-type')}); break;
+      case 'identity': result = await apiCall('identity', {}); break;
+      case 'virtual-phone': result = await apiCall('virtual-phone', {phone: val('virtual-phone-input')}); break;
+      case 'mac': result = await apiCall('mac', {mac: val('mac-input')}); break;
+      case 'autoscan': result = await apiCall('autoscan', {full_name: val('autoscan-name'), city: val('autoscan-city'), phone: val('autoscan-phone'), ip: val('autoscan-ip'), email: val('autoscan-email'), domain: val('autoscan-domain')}); break;
+      case 'conflict': result = await apiCall('conflict', {entity1: val('conflict-entity1'), entity2: val('conflict-entity2')}); break;
+      case 'ip-detailed': result = await apiCall('ip-detailed', {ip: val('ip-detailed-input')}); break;
+      case 'veriphone': result = await apiCall('veriphone', {phone: val('veriphone-input')}); break;
+      case 'numverify': result = await apiCall('numverify', {phone: val('numverify-input')}); break;
+      case 'osint': result = await apiCall('osint', {query: val('osint-query')}); break;
+      case 'contact-info': result = await apiCall('contact-info', {first_name: val('contact-first'), last_name: val('contact-last'), city: val('contact-city')}); break;
+      case 'instagram': result = await apiCall('instagram', {email: val('instagram-email')}); break;
+      case 'face-similarity': result = await apiCall('face-similarity', {url1: val('face-url1'), url2: val('face-url2')}); break;
+      case 'reverse-image': result = await apiCall('reverse-image', {url: val('reverse-image-url')}); break;
+      case 'twitter': result = await apiCall('twitter', {email: val('twitter-email')}); break;
+      case 'sherlock': result = await apiCall('sherlock', {username: val('sherlock-username')}); break;
+      case 'ip-complete': result = await apiCall('ip-complete', {ip: val('ip-complete-input')}); break;
+      case 'spam-check': result = await apiCall('spam-check', {text: val('spam-check-text')}); break;
+      case 'info-scrape': result = await apiCall('info-scrape', {url: val('info-scrape-url')}); break;
+      case 'email-validate': result = await apiCall('email-validate', {email: val('email-validate-input')}); break;
+      case 'sherlockeye': {
+        const t = currentTab['sherlockeye'] || 'username';
+        result = await apiCall('sherlockeye', {type: t, username: val('sherlockeye-username'), search_id: val('sherlockeye-id')});
+        break;
+      }
+      case 'truecaller': result = await apiCall('truecaller', {phone: val('truecaller-input')}); break;
+      case 'reddit': result = await apiCall('reddit', {username: val('reddit-username')}); break;
+      default: showError(resultDiv, 'Unknown tool: ' + toolId); return;
+    }
+    if (result) renderResult(toolId, result, resultDiv);
+  } catch (e) {
+    showError(resultDiv, 'Network error: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ── RESULT RENDERING ──────────────────────────────────────────────────────────
+function renderResult(toolId, data, container) {
+  if (data.error) { showError(container, data.error); return; }
+  const r = data.result;
+  container.innerHTML = '';
+  container.classList.add('fade-in');
+
+  // Special renderers
+  if (toolId === 'breach') { renderBreach(r, container); return; }
+  if (toolId === 'deep-account' || toolId === 'username' || toolId === 'sherlock') { renderFoundSites(r, container); return; }
+  if (toolId === 'password') { renderPassword(r, container); return; }
+  if (toolId === 'port-scan') { renderPortScan(r, container); return; }
+  if (toolId === 'wayback') { renderWayback(r, container); return; }
+  if (toolId === 'subdomain') { renderSubdomains(r, container); return; }
+  if (toolId === 'dnsbl') { renderDNSBL(r, container); return; }
+  if (toolId === 'info-scrape') { renderInfoScrape(r, container); return; }
+  if (['person', 'reverse-phone', 'travel', 'business', 'fact-check', 'relationship', 'malice', 'supply-vendor', 'business-rep', 'conflict', 'contact-info'].includes(toolId)) {
+    renderMarkdown(r, container); return;
+  }
+
+  // Generic JSON renderer
+  renderJSON(r, container);
+}
+
+function renderBreach(r, container) {
+  const box = createResultBox(r.found ? `💥 ${r.breach_count} breach(es) found for ${r.email}` : `✅ No breaches found for ${r.email}`, r.found ? 'error' : 'success');
+  if (r.found && r.breaches) {
+    const content = document.createElement('div');
+    content.className = 'result-content';
+    r.breaches.forEach(b => {
+      const card = document.createElement('div');
+      card.className = 'breach-card';
+      card.innerHTML = `<div class="breach-name">💥 ${b.name}</div>
+        <div class="breach-meta">Domain: ${b.domain || 'N/A'} | Date: ${b.breach_date || 'N/A'} | ${(b.pwn_count || 0).toLocaleString()} accounts</div>
+        <div class="breach-tags">${(b.data_classes || []).map(d => `<span class="breach-tag">${d}</span>`).join('')}</div>`;
+      content.appendChild(card);
+    });
+    box.appendChild(content);
+  }
+  container.appendChild(box);
+}
+
+function renderFoundSites(r, container) {
+  const found = r.found || [];
+  const box = createResultBox(`🔍 Found on ${found.length} site(s) for "${r.username}"`, found.length > 0 ? 'success' : 'error');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  if (found.length === 0) {
+    content.innerHTML = '<span class="notfound">No accounts found.</span>';
+  } else {
+    const list = document.createElement('div');
+    list.className = 'found-list';
+    found.forEach(item => {
+      const url = typeof item === 'string' ? item : item.url;
+      const site = typeof item === 'string' ? item : (item.site || item.url);
+      const el = document.createElement('div');
+      el.className = 'found-item';
+      el.innerHTML = `<span class="found-icon">✓</span><a href="${url}" target="_blank">${site}</a>`;
+      list.appendChild(el);
+    });
+    content.appendChild(list);
+  }
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderPassword(r, container) {
+  const colors = {Weak: 'red', Moderate: 'yellow', Strong: 'green'};
+  const box = createResultBox(`🔑 Password Strength: ${r.strength}`, r.strength === 'Strong' ? 'success' : 'error');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  content.innerHTML = `<div class="cards-grid">
+    <div class="card"><div class="card-label">Strength</div><div class="card-value ${colors[r.strength] || ''}">${r.strength}</div></div>
+    <div class="card"><div class="card-label">Score</div><div class="card-value">${r.score}/6</div></div>
+  </div>
+  <div style="margin-top:12px;color:var(--muted)">${r.message}</div>`;
+  if (r.criteria) {
+    const list = document.createElement('div');
+    list.className = 'criteria-list';
+    r.criteria.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'criteria-item';
+      el.innerHTML = `<div class="criteria-icon ${c.met ? 'met' : 'unmet'}">${c.met ? '✓' : '✗'}</div><span>${c.name}</span>`;
+      list.appendChild(el);
+    });
+    content.appendChild(list);
+  }
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderPortScan(r, container) {
+  const open = r.ports.filter(p => p.status === 'OPEN');
+  const box = createResultBox(`🔌 ${open.length} open port(s) on ${r.target}`, open.length > 0 ? 'error' : 'success');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  const grid = document.createElement('div');
+  grid.className = 'cards-grid';
+  r.ports.forEach(p => {
+    if (p.status === 'OPEN') {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<div class="card-label">Port ${p.port}</div><div class="card-value green">OPEN</div>`;
+      grid.appendChild(card);
+    }
+  });
+  if (open.length === 0) {
+    grid.innerHTML = '<div style="color:var(--green);padding:8px">All scanned ports are closed.</div>';
+  }
+  content.appendChild(grid);
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderWayback(r, container) {
+  const box = createResultBox(`📸 ${r.count} snapshot(s) found for ${r.domain}`, r.count > 0 ? 'success' : 'error');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  if (r.snapshots && r.snapshots.length > 0) {
+    const list = document.createElement('div');
+    list.className = 'found-list';
+    r.snapshots.slice(0, 20).forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'found-item';
+      el.innerHTML = `<span class="found-icon">📸</span><a href="${s.archive_url}" target="_blank">${s.timestamp} — ${s.original_url}</a>`;
+      list.appendChild(el);
+    });
+    content.appendChild(list);
+  } else {
+    content.innerHTML = '<span class="notfound">No snapshots found.</span>';
+  }
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderSubdomains(r, container) {
+  const box = createResultBox(`🔗 ${r.count} subdomain(s) found for ${r.domain}`, r.count > 0 ? 'success' : 'error');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  if (r.subdomains && r.subdomains.length > 0) {
+    const list = document.createElement('div');
+    list.className = 'found-list';
+    r.subdomains.forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'found-item';
+      el.innerHTML = `<span class="found-icon">🔗</span><a href="https://${s}" target="_blank">${s}</a>`;
+      list.appendChild(el);
+    });
+    content.appendChild(list);
+  } else {
+    content.innerHTML = '<span class="notfound">No subdomains found.</span>';
+  }
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderDNSBL(r, container) {
+  const listed = r.checks.filter(c => c.listed);
+  const box = createResultBox(`🚫 ${listed.length} blacklist(s) for ${r.ip}`, listed.length > 0 ? 'error' : 'success');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  const grid = document.createElement('div');
+  grid.className = 'cards-grid';
+  r.checks.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="card-label">${c.dnsbl}</div><div class="card-value ${c.listed ? 'red' : 'green'}">${c.listed ? 'LISTED' : 'Clean'}</div>`;
+    grid.appendChild(card);
+  });
+  content.appendChild(grid);
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderInfoScrape(r, container) {
+  const box = createResultBox(`📤 Contact info from ${r.url}`, 'success');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  content.innerHTML = `<div class="cards-grid">
+    <div class="card"><div class="card-label">Emails Found</div><div class="card-value blue">${r.emails.length}</div></div>
+    <div class="card"><div class="card-label">Phones Found</div><div class="card-value blue">${r.phones.length}</div></div>
+    <div class="card"><div class="card-label">Social Platforms</div><div class="card-value blue">${r.social_platforms.length}</div></div>
+  </div>
+  <div style="margin-top:12px">
+    ${r.emails.length ? '<div style="margin-bottom:8px"><strong>Emails:</strong><br>' + r.emails.join('<br>') + '</div>' : ''}
+    ${r.phones.length ? '<div style="margin-bottom:8px"><strong>Phones:</strong><br>' + r.phones.join('<br>') + '</div>' : ''}
+    ${r.social_platforms.length ? '<div><strong>Social:</strong><br>' + r.social_platforms.map(s => `<a href="https://${s}" target="_blank" style="color:var(--accent)">${s}</a>`).join('<br>') + '</div>' : ''}
+  </div>`;
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderMarkdown(r, container) {
+  const content_text = r.content || JSON.stringify(r, null, 2);
+  const box = createResultBox('✅ Result', 'success');
+  const content = document.createElement('div');
+  content.className = 'result-content markdown';
+  // Simple markdown-like rendering
+  content.innerHTML = content_text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^### (.*$)/gm, '<h4 style="color:var(--accent);margin:12px 0 6px">$1</h4>')
+    .replace(/^## (.*$)/gm, '<h3 style="color:var(--accent);margin:14px 0 8px">$1</h3>')
+    .replace(/^# (.*$)/gm, '<h2 style="color:var(--accent);margin:16px 0 10px">$1</h2>')
+    .replace(/\n/g, '<br>');
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = '📋 Copy';
+  copyBtn.onclick = () => { navigator.clipboard.writeText(content_text); toast('Copied!', 'success'); };
+  box.querySelector('.result-header').appendChild(copyBtn);
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+function renderJSON(r, container) {
+  const box = createResultBox('✅ Result', 'success');
+  const content = document.createElement('div');
+  content.className = 'result-content';
+
+  // Try to render as cards if it's a flat object
+  if (typeof r === 'object' && !Array.isArray(r)) {
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+    let hasCards = false;
+    for (const [k, v] of Object.entries(r)) {
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div class="card-label">${k}</div><div class="card-value">${v}</div>`;
+        grid.appendChild(card);
+        hasCards = true;
+      }
+    }
+    if (hasCards) content.appendChild(grid);
+  }
+
+  // Always show raw JSON
+  const pre = document.createElement('div');
+  pre.style.cssText = 'margin-top:12px;font-family:Consolas,monospace;font-size:.8rem;color:#94a3b8;white-space:pre-wrap;word-break:break-all';
+  pre.textContent = JSON.stringify(r, null, 2);
+  content.appendChild(pre);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = '📋 Copy';
+  copyBtn.onclick = () => { navigator.clipboard.writeText(JSON.stringify(r, null, 2)); toast('Copied!', 'success'); };
+  box.querySelector('.result-header').appendChild(copyBtn);
+  box.appendChild(content);
+  container.appendChild(box);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function val(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  return el.value || '';
+}
+
+function createResultBox(title, status) {
+  const box = document.createElement('div');
+  box.className = 'result-box fade-in';
+  const header = document.createElement('div');
+  header.className = 'result-header';
+  header.innerHTML = `<div class="status"><div class="status-dot ${status}"></div>${title}</div>`;
+  box.appendChild(header);
+  return box;
+}
+
+function showLoading(container) {
+  container.innerHTML = `<div class="result-box"><div class="result-header"><div class="status"><div class="status-dot loading"></div>Running search...</div></div><div class="result-content" style="color:var(--muted)">Please wait...</div></div>`;
+}
+
+function showError(container, msg) {
+  container.innerHTML = `<div class="result-box"><div class="result-header"><div class="status"><div class="status-dot error"></div>Error</div></div><div class="result-content error-text">${msg}</div></div>`;
+  toast(msg, 'error');
+}
+
+function toast(msg, type = 'info') {
+  const tc = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> ${msg}`;
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const resp = await fetch('/api/config');
+    const data = await resp.json();
+    const config = data.config || {};
+    for (const [k, v] of Object.entries(config)) {
+      const el = document.getElementById('key-' + k);
+      if (el && v) el.placeholder = v ? '(configured)' : '';
+    }
+  } catch (e) {}
+}
+
+async function saveSettings() {
+  const keys = ['HIBP_API_KEY','PERPLEXITY_API_KEY','RAPIDAPI_KEY','HUNTER_API_KEY','CASTRICK_API_KEY',
+    'VIRUSTOTAL_API_KEY','PREDICTA_API_KEY','IPSTACK_API_KEY','VERIPHONE_API_KEY','NUMVERIFY_API_KEY',
+    'SPAM_API_KEY','EMAIL_VALIDATOR_API_KEY','SHERLOCKEYE_API_KEY'];
+  const data = {};
+  keys.forEach(k => {
+    const el = document.getElementById('key-' + k);
+    if (el && el.value) data[k] = el.value;
+  });
+  try {
+    const resp = await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
+    const result = await resp.json();
+    if (result.success) toast('Settings saved successfully!', 'success');
+    else toast('Error saving settings', 'error');
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────────
+async function loadLog() {
+  try {
+    const resp = await fetch('/api/log');
+    const data = await resp.json();
+    const logEl = document.getElementById('log-content');
+    if (logEl) logEl.textContent = data.log || 'No log entries yet.';
+  } catch (e) {}
+}
+
+async function clearLog() {
+  if (!confirm('Clear all log entries?')) return;
+  await fetch('/api/log/clear', {method: 'POST'});
+  loadLog();
+  toast('Log cleared', 'success');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  showPanel('dashboard');
+  // Allow Enter key to trigger search
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      const panel = document.querySelector('.tool-panel.active');
+      if (panel) {
+        const btn = panel.querySelector('.run-btn');
+        if (btn && !btn.disabled) btn.click();
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
