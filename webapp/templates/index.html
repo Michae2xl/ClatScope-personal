@@ -60,6 +60,7 @@
     .tool-badge { font-size: .65rem; padding: 1px 6px; border-radius: 10px; background: var(--surface2); color: var(--muted); margin-left: auto; }
     .tool-badge.free { background: rgba(34,197,94,.15); color: var(--green); }
     .tool-badge.api { background: rgba(124,58,237,.15); color: #a78bfa; }
+    .tool-badge.active { background: rgba(16,185,129,.2); color: #10b981; border: 1px solid rgba(16,185,129,.35); font-weight: 700; }
 
     /* ── MAIN CONTENT ── */
     .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
@@ -244,7 +245,7 @@
         <div class="tool-item" onclick="showTool('dnsbl')" data-tool="dnsbl">🚫 DNSBL Blacklist <span class="tool-badge free">Free</span></div>
         <div class="tool-item" onclick="showTool('port-scan')" data-tool="port-scan">🔌 Port Scanner <span class="tool-badge free">Free</span></div>
         <div class="tool-item" onclick="showTool('ip-complete')" data-tool="ip-complete">📊 Complete IP Details <span class="tool-badge free">Free</span></div>
-        <div class="tool-item" onclick="showTool('ip-detailed')" data-tool="ip-detailed">🗺 Detailed IP (IPStack) <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('ip-detailed')" data-tool="ip-detailed">🗺 Detailed IP (IPStack) <span class="tool-badge active">✓ Active</span></div>
       </div>
     </div>
 
@@ -260,7 +261,7 @@
         <div class="tool-item" onclick="showTool('crawler')" data-tool="crawler">🕷 Web Crawler <span class="tool-badge free">Free</span></div>
         <div class="tool-item" onclick="showTool('metadata')" data-tool="metadata">🏷 Web Metadata <span class="tool-badge free">Free</span></div>
         <div class="tool-item" onclick="showTool('wayback')" data-tool="wayback">📸 Wayback Machine <span class="tool-badge free">Free</span></div>
-        <div class="tool-item" onclick="showTool('virustotal')" data-tool="virustotal">🦠 VirusTotal <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('virustotal')" data-tool="virustotal">🦠 VirusTotal <span class="tool-badge active">✓ Active</span></div>
         <div class="tool-item" onclick="showTool('info-scrape')" data-tool="info-scrape">📤 Info Scraper <span class="tool-badge free">Free</span></div>
       </div>
     </div>
@@ -295,8 +296,8 @@
         <div class="tool-item" onclick="showTool('reverse-phone')" data-tool="reverse-phone">↩ Reverse Phone <span class="tool-badge api">API</span></div>
         <div class="tool-item" onclick="showTool('phone-leak')" data-tool="phone-leak">💧 Phone Leak Search <span class="tool-badge api">API</span></div>
         <div class="tool-item" onclick="showTool('virtual-phone')" data-tool="virtual-phone">📵 Virtual Phone Detector <span class="tool-badge api">API</span></div>
-        <div class="tool-item" onclick="showTool('veriphone')" data-tool="veriphone">✔ Veriphone Validate <span class="tool-badge api">API</span></div>
-        <div class="tool-item" onclick="showTool('numverify')" data-tool="numverify">🔢 NumVerify <span class="tool-badge api">API</span></div>
+        <div class="tool-item" onclick="showTool('veriphone')" data-tool="veriphone">✔ Veriphone Validate <span class="tool-badge active">✓ Active</span></div>
+        <div class="tool-item" onclick="showTool('numverify')" data-tool="numverify">🔢 NumVerify <span class="tool-badge active">✓ Active</span></div>
         <div class="tool-item" onclick="showTool('truecaller')" data-tool="truecaller">📟 Truecaller <span class="tool-badge api">API</span></div>
       </div>
     </div>
