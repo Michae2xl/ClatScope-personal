@@ -1,0 +1,4 @@
+
+# Sensitive files - API keys
+webapp/config.json
+api_credentials.md
