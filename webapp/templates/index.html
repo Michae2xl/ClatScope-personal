@@ -169,6 +169,26 @@
     .api-group-title { font-weight: 600; font-size: .9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     .api-group-title .api-badge { font-size: .7rem; padding: 2px 8px; border-radius: 10px; background: rgba(124,58,237,.2); color: #a78bfa; }
 
+    /* ── API KEY STATUS LED ── */
+    .api-field-wrap { position: relative; }
+    .api-field-wrap input[placeholder="(configured)"] {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 0 2px rgba(16,185,129,.25), 0 0 10px rgba(16,185,129,.15);
+      background: rgba(16,185,129,.05) !important;
+      color: #10b981 !important;
+    }
+    .api-field-wrap input:not([placeholder="(configured)"]) {
+      border-color: rgba(239,68,68,.4) !important;
+      box-shadow: 0 0 0 1px rgba(239,68,68,.15);
+    }
+    .api-status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 700; margin-left: 8px; padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+    .api-status-badge.configured { background: rgba(16,185,129,.15); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+    .api-status-badge.missing { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
+    .api-status-led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .api-status-led.on { background: #10b981; box-shadow: 0 0 6px #10b981; animation: ledPulse 2s ease-in-out infinite; }
+    .api-status-led.off { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,.5); }
+    @keyframes ledPulse { 0%,100% { box-shadow: 0 0 4px #10b981; } 50% { box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16,185,129,.4); } }
+
     /* ── LOG ── */
     .log-panel { padding: 24px; display: flex; flex-direction: column; flex: 1; }
     .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -1198,31 +1218,31 @@
 
         <div class="api-group">
           <div class="api-group-title">🔓 Core APIs <span class="api-badge">Required for most tools</span></div>
-          <div class="form-group"><label>Perplexity AI (Person/Business/Travel/Fact-Check/Malice/Relationship/Conflict)</label><input type="password" id="key-PERPLEXITY_API_KEY" placeholder="pplx-..." /></div>
-          <div class="form-group"><label>RapidAPI Key (Botometer/TikTok/AES/Skip Trace/Phone Leak/MAC/OSINT/Instagram/Twitter/Face/Image)</label><input type="password" id="key-RAPIDAPI_KEY" placeholder="Your RapidAPI key..." /></div>
+          <div class="form-group"><label>Perplexity AI (Person/Business/Travel/Fact-Check/Malice/Relationship/Conflict) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-PERPLEXITY_API_KEY" placeholder="pplx-..." /></div></div>
+          <div class="form-group"><label>RapidAPI Key (Botometer/TikTok/AES/Skip Trace/Phone Leak/MAC/OSINT/Instagram/Twitter/Face/Image) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-RAPIDAPI_KEY" placeholder="Your RapidAPI key..." /></div></div>
         </div>
 
         <div class="api-group">
           <div class="api-group-title">📧 Email APIs</div>
-          <div class="form-group"><label>Have I Been Pwned (Breach Check)</label><input type="password" id="key-HIBP_API_KEY" placeholder="Your HIBP key..." /></div>
-          <div class="form-group"><label>Hunter.io (Domain/Email/Person Search)</label><input type="password" id="key-HUNTER_API_KEY" placeholder="Your Hunter.io key..." /></div>
-          <div class="form-group"><label>Castrick (Email Search)</label><input type="password" id="key-CASTRICK_API_KEY" placeholder="Your Castrick key..." /></div>
-          <div class="form-group"><label>Email Validator (Email Validation)</label><input type="password" id="key-EMAIL_VALIDATOR_API_KEY" placeholder="Your Email Validator key..." /></div>
-          <div class="form-group"><label>Spam Checker / APILayer (Spam Check)</label><input type="password" id="key-SPAM_API_KEY" placeholder="Your APILayer key..." /></div>
-          <div class="form-group"><label>Predicta (Email/Phone Search)</label><input type="password" id="key-PREDICTA_API_KEY" placeholder="Your Predicta key..." /></div>
+          <div class="form-group"><label>Have I Been Pwned (Breach Check) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-HIBP_API_KEY" placeholder="Your HIBP key..." /></div></div>
+          <div class="form-group"><label>Hunter.io (Domain/Email/Person Search) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-HUNTER_API_KEY" placeholder="Your Hunter.io key..." /></div></div>
+          <div class="form-group"><label>Castrick (Email Search) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-CASTRICK_API_KEY" placeholder="Your Castrick key..." /></div></div>
+          <div class="form-group"><label>Email Validator (Email Validation) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-EMAIL_VALIDATOR_API_KEY" placeholder="Your Email Validator key..." /></div></div>
+          <div class="form-group"><label>Spam Checker / APILayer (Spam Check) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-SPAM_API_KEY" placeholder="Your APILayer key..." /></div></div>
+          <div class="form-group"><label>Predicta (Email/Phone Search) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-PREDICTA_API_KEY" placeholder="Your Predicta key..." /></div></div>
         </div>
 
         <div class="api-group">
           <div class="api-group-title">📱 Phone APIs</div>
-          <div class="form-group"><label>Veriphone (Phone Validation)</label><input type="password" id="key-VERIPHONE_API_KEY" placeholder="Your Veriphone key..." /></div>
-          <div class="form-group"><label>NumVerify (Phone Validation)</label><input type="password" id="key-NUMVERIFY_API_KEY" placeholder="Your NumVerify key..." /></div>
+          <div class="form-group"><label>Veriphone (Phone Validation) <span class="api-status-badge configured"><span class="api-status-led on"></span>Active</span></label><div class="api-field-wrap"><input type="password" id="key-VERIPHONE_API_KEY" placeholder="(configured)" /></div></div>
+          <div class="form-group"><label>NumVerify (Phone Validation) <span class="api-status-badge configured"><span class="api-status-led on"></span>Active</span></label><div class="api-field-wrap"><input type="password" id="key-NUMVERIFY_API_KEY" placeholder="(configured)" /></div></div>
         </div>
 
         <div class="api-group">
           <div class="api-group-title">🌐 Network & Security APIs</div>
-          <div class="form-group"><label>VirusTotal (Domain Scan)</label><input type="password" id="key-VIRUSTOTAL_API_KEY" placeholder="Your VirusTotal key..." /></div>
-          <div class="form-group"><label>IPStack (Detailed IP Lookup)</label><input type="password" id="key-IPSTACK_API_KEY" placeholder="Your IPStack key..." /></div>
-          <div class="form-group"><label>SherlockEye (Username Search)</label><input type="password" id="key-SHERLOCKEYE_API_KEY" placeholder="Your SherlockEye key..." /></div>
+          <div class="form-group"><label>VirusTotal (Domain Scan) <span class="api-status-badge configured"><span class="api-status-led on"></span>Active</span></label><div class="api-field-wrap"><input type="password" id="key-VIRUSTOTAL_API_KEY" placeholder="(configured)" /></div></div>
+          <div class="form-group"><label>IPStack (Detailed IP Lookup) <span class="api-status-badge configured"><span class="api-status-led on"></span>Active</span></label><div class="api-field-wrap"><input type="password" id="key-IPSTACK_API_KEY" placeholder="(configured)" /></div></div>
+          <div class="form-group"><label>SherlockEye (Username Search) <span class="api-status-badge missing"><span class="api-status-led off"></span>Missing</span></label><div class="api-field-wrap"><input type="password" id="key-SHERLOCKEYE_API_KEY" placeholder="Your SherlockEye key..." /></div></div>
         </div>
 
         <button class="run-btn" onclick="saveSettings()"><span class="btn-text">💾 Save All Settings</span></button>
