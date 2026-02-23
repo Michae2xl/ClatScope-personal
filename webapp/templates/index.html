@@ -17,8 +17,8 @@
       --green: #00ff41;
       --red: #ff2244;
       --yellow: #ffcc00;
-      --text: #c8ffd4;
-      --muted: #3a6b42;
+      --text: #e8ffe8;
+      --muted: #7ab87e;
       --radius: 6px;
       --glow: 0 0 10px rgba(0,255,65,.4), 0 0 20px rgba(0,255,65,.15);
       --glow-sm: 0 0 6px rgba(0,255,65,.3);
@@ -112,40 +112,43 @@
     .sidebar-search input:focus { border-color: var(--accent); box-shadow: var(--glow-sm); }
     .category { border-bottom: 1px solid rgba(13,46,18,.8); }
     .category-header {
-      padding: 9px 14px;
-      font-size: .7rem;
-      font-weight: 700;
+      padding: 10px 14px;
+      font-size: .72rem;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: var(--muted);
+      color: #ffffff;
       display: flex; align-items: center; gap: 8px;
       cursor: pointer; user-select: none;
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Orbitron', monospace;
+      background: rgba(0,255,65,.04);
+      border-bottom: 1px solid rgba(0,255,65,.06);
+      text-shadow: 0 0 8px rgba(0,255,65,.3);
     }
-    .category-header:hover { color: var(--accent); }
-    .category-header .cat-icon { font-size: 13px; }
-    .category-header .arrow { margin-left: auto; transition: transform .2s; font-size: 10px; }
+    .category-header:hover { color: var(--accent); background: rgba(0,255,65,.08); text-shadow: var(--glow-sm); }
+    .category-header .cat-icon { font-size: 14px; }
+    .category-header .arrow { margin-left: auto; transition: transform .2s; font-size: 10px; color: var(--accent); }
     .category-header.collapsed .arrow { transform: rotate(-90deg); }
     .category-items { overflow: hidden; }
     .category-items.collapsed { display: none; }
     .tool-item {
       padding: 8px 14px 8px 28px;
-      font-size: .82rem;
+      font-size: .88rem;
       cursor: pointer;
-      color: var(--muted);
+      color: #d4f5d4;
       transition: all .15s;
       display: flex; align-items: center; gap: 8px;
       border-left: 2px solid transparent;
       font-family: 'Rajdhani', sans-serif;
-      font-weight: 600;
-      letter-spacing: .3px;
+      font-weight: 700;
+      letter-spacing: .4px;
     }
-    .tool-item:hover { color: var(--accent); background: rgba(0,255,65,.04); border-left-color: rgba(0,255,65,.3); }
-    .tool-item.active { color: var(--accent); background: rgba(0,255,65,.08); border-left-color: var(--accent); text-shadow: 0 0 8px rgba(0,255,65,.5); }
-    .tool-badge { font-size: .6rem; padding: 1px 6px; border-radius: 3px; background: transparent; color: var(--muted); margin-left: auto; font-family: 'Share Tech Mono', monospace; border: 1px solid var(--border); }
-    .tool-badge.free { border-color: rgba(0,255,65,.25); color: rgba(0,255,65,.6); }
-    .tool-badge.api { border-color: rgba(100,100,200,.3); color: rgba(150,150,255,.6); }
-    .tool-badge.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 4px rgba(0,255,65,.3); font-weight: 700; }
+    .tool-item:hover { color: #ffffff; background: rgba(0,255,65,.07); border-left-color: rgba(0,255,65,.5); text-shadow: 0 0 6px rgba(0,255,65,.4); }
+    .tool-item.active { color: var(--accent); background: rgba(0,255,65,.1); border-left-color: var(--accent); text-shadow: 0 0 10px rgba(0,255,65,.6); font-weight: 900; }
+    .tool-badge { font-size: .6rem; padding: 1px 6px; border-radius: 3px; background: transparent; color: #7ab87e; margin-left: auto; font-family: 'Share Tech Mono', monospace; border: 1px solid rgba(0,255,65,.2); }
+    .tool-badge.free { border-color: rgba(0,255,65,.35); color: rgba(0,255,65,.85); background: rgba(0,255,65,.05); }
+    .tool-badge.api { border-color: rgba(150,150,255,.4); color: rgba(180,180,255,.85); background: rgba(100,100,200,.06); }
+    .tool-badge.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 6px rgba(0,255,65,.4); font-weight: 700; background: rgba(0,255,65,.08); }
 
     /* ── MAIN CONTENT ── */
     .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
